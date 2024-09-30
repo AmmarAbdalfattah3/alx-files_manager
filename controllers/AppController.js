@@ -16,8 +16,7 @@ class AppController {
 
       return res.status(200).json({ users: usersCount, files: filesCount });
     } catch (error) {
-      console.error('Error retrieving stats:', error);
-      return res.status(500).json({ error: 'Unable to retrieve stats' });
+      return res.status(500).json({ error: 'Unable to fetch stats' });
     }
   }
 }
