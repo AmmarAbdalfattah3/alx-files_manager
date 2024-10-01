@@ -1,4 +1,4 @@
-const redisClient = require('../utils/redis.js');
+iconst redisClient = require('../utils/redis.js');
 const dbClient = require('../utils/db.js');
 
 class AppController {
