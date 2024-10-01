@@ -18,15 +18,28 @@ class DBClient {
             });
     }
 
+    async findUserByEmail(email) {
+        if (!this.db) {
+            throw new Error('Database not connected');
+        }
+        return await this.db.collection('users').findOne({ email });
+    }
+
     isAlive() {
         return !!this.db;
     }
 
     async nbUsers() {
+        if (!this.db) {
+            throw new Error('Database not connected');
+        }
         return await this.db.collection('users').countDocuments();
     }
 
     async nbFiles() {
+        if (!this.db) {
+            throw new Error('Database not connected');
+        }
         return await this.db.collection('files').countDocuments();
     }
 }
