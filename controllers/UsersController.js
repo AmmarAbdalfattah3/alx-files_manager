@@ -1,5 +1,6 @@
 const sha1 = require('sha1');
-const dbClient = require('../utils/db.js');
+const { ObjectId } = require('mongodb');
+const dbClient = require('../utils/db');
 
 class UsersController {
   static async postNew(req, res) {
@@ -30,12 +31,12 @@ class UsersController {
       const userId = result.insertedId;
 
       return res.status(201).json({
-        id: userId,
+        id: userId.toString(),
         email,
       });
-    } catch (error) {
-      console.error('Error creating user:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
+    } catch (err) {
+      console.error('Error inserting user:', err);
+      return res.status(500).json({ error: 'Cannot insert user' });
     }
   }
 }
