@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
-import mime from 'mime-types';
 import redisClient from '../utils/redis';
 import dbClient from '../utils/db';
 
@@ -16,7 +15,13 @@ class FilesController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { name, type, parentId = 0, isPublic = false, data } = req.body;
+    const {
+      name,
+      type,
+      parentId = 0,
+      isPublic = false,
+      data,
+    } = req.body;
     if (!name) {
       return res.status(400).json({ error: 'Missing name' });
     }
