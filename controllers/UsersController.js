@@ -1,3 +1,4 @@
+import { ObjectId } from 'mongodb';
 import sha1 from 'sha1';
 import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
@@ -45,7 +46,7 @@ class UsersController {
   }
 
   /**
-   * GET /users/me - Get the current user based on token
+   * GET /users/me - Retrieve the authenticated user
    */
   static async getMe(req, res) {
     const token = req.header('X-Token');
@@ -53,18 +54,25 @@ class UsersController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const userId = await redisClient.get(`auth_${token}`);
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+    try {
+      // Get the userId from Redis using the token
+      const userId = await redisClient.get(`auth_${token}`);
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    // Find user by ID in the database
-    const user = await dbClient.db.collection('users').findOne({ _id: dbClient.getObjectId(userId) });
-    if (!user) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+      // Retrieve the user from the database using the ObjectId
+      const user = await dbClient.db.collection('users').findOne({ _id: ObjectId(userId) });
+      if (!user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
 
-    return res.status(200).json({ id: user._id, email: user.email });
+      // Return the user's id and email only
+      return res.status(200).json({ id: user._id, email: user.email });
+    } catch (error) {
+      // Handle any internal server errors
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
   }
 }
 
