@@ -1,12 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
-import redisClient from '../utils/redis.js';
-import dbClient from '../utils/db.js';
+import dbClient from '../utils/db';
+import redisClient from '../utils/redis';
 
 class FilesController {
   static async postUpload(req, res) {
-    const token = req.header('X-Token');
+    const token = req.headers['x-token'];
     if (!token) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -16,19 +16,26 @@ class FilesController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { name, type, parentId = 0, isPublic = false, data } = req.body;
+    const {
+      name,
+      type,
+      parentId,
+      isPublic = false,
+      data,
+    } = req.body;
 
-    if (!name) return res.status(400).json({ error: 'Missing name' });
+    if (!name) {
+      return res.status(400).json({ error: 'Missing name' });
+    }
     if (!type || !['folder', 'file', 'image'].includes(type)) {
       return res.status(400).json({ error: 'Missing type' });
     }
-    if (type !== 'folder' && !data) {
+    if (!data && type !== 'folder') {
       return res.status(400).json({ error: 'Missing data' });
     }
 
-    let parentFile = null;
-    if (parentId !== 0) {
-      parentFile = await dbClient.findFileById(parentId);
+    if (parentId) {
+      const parentFile = await dbClient.db.collection('files').findOne({ _id: parentId });
       if (!parentFile) {
         return res.status(400).json({ error: 'Parent not found' });
       }
@@ -37,38 +44,26 @@ class FilesController {
       }
     }
 
-    if (type === 'folder') {
-      const file = {
-        userId,
-        name,
-        type,
-        isPublic,
-        parentId,
-      };
-      const insertedFile = await dbClient.insertFile(file);
-      return res.status(201).json(insertedFile);
-    }
-
-    const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
-    if (!fs.existsSync(FOLDER_PATH)) {
-      fs.mkdirSync(FOLDER_PATH, { recursive: true });
-    }
-
-    const localPath = path.join(FOLDER_PATH, uuidv4());
-    const fileData = Buffer.from(data, 'base64');
-    fs.writeFileSync(localPath, fileData);
-
-    const file = {
+    const newFile = {
       userId,
       name,
       type,
       isPublic,
       parentId,
-      localPath,
     };
+    if (type !== 'folder') {
+      const folderPath = process.env.FOLDER_PATH || '/tmp/files_manager';
+      const fileId = uuidv4();
+      const filePath = path.join(folderPath, `${fileId}.file`);
 
-    const insertedFile = await dbClient.insertFile(file);
-    return res.status(201).json(insertedFile);
+      fs.mkdirSync(folderPath, { recursive: true });
+      fs.writeFileSync(filePath, Buffer.from(data, 'base64'));
+
+      newFile.path = filePath;
+    }
+
+    const result = await dbClient.db.collection('files').insertOne(newFile);
+    return res.status(201).json(result.ops[0]);
   }
 }
 
