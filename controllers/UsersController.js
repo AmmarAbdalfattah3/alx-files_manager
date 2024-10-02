@@ -1,5 +1,6 @@
 import sha1 from 'sha1';
 import dbClient from '../utils/db';
+import redisClient from '../utils/redis';
 
 class UsersController {
   /**
@@ -41,6 +42,29 @@ class UsersController {
       id: result.insertedId,
       email: newUser.email,
     });
+  }
+
+  /**
+   * GET /users/me - Get the current user based on token
+   */
+  static async getMe(req, res) {
+    const token = req.header('X-Token');
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const userId = await redisClient.get(`auth_${token}`);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Find user by ID in the database
+    const user = await dbClient.db.collection('users').findOne({ _id: dbClient.getObjectId(userId) });
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    return res.status(200).json({ id: user._id, email: user.email });
   }
 }
 
