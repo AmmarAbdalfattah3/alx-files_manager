@@ -49,7 +49,7 @@ class FilesController {
       name,
       type,
       isPublic,
-      parentId,
+      parentId: parentId || 0,
     };
     if (type !== 'folder') {
       const folderPath = process.env.FOLDER_PATH || '/tmp/files_manager';
