@@ -1,5 +1,5 @@
 import sha1 from 'sha1';
-import dbClient from '../utils/db.js';
+import dbClient from '../utils/db';
 
 class UsersController {
   /**
@@ -33,7 +33,7 @@ class UsersController {
       email,
       password: hashedPassword,
     };
-    
+
     const result = await dbClient.db.collection('users').insertOne(newUser);
 
     // Return the new user's ID and email
