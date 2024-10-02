@@ -1,33 +1,54 @@
-import crypto from 'crypto';
+import { createHash } from 'crypto';
 import dbClient from '../utils/db';
 
 class UsersController {
-    static async postNew(req, res) {
-        const { email, password } = req.body;
+  static async postNew(req, res) {
+    const { email, password } = req.body;
 
-        if (!email) return res.status(400).json({ error: 'Missing email' });
-        if (!password) return res.status(400).json({ error: 'Missing password' });
-
-        const existingUser = await dbClient.db.collection('users').findOne({ email });
-        if (existingUser) return res.status(400).json({ error: 'Already exist' });
-
-        const hashedPassword = crypto.createHash('sha1').update(password).digest('hex');
-        const newUser = { email, password: hashedPassword };
-        const result = await dbClient.db.collection('users').insertOne(newUser);
-
-        res.status(201).json({ id: result.insertedId, email });
+    // Validate input
+    if (!email) {
+      return res.status(400).json({ error: 'Missing email' });
+    }
+    if (!password) {
+      return res.status(400).json({ error: 'Missing password' });
     }
 
-    static async getMe(req, res) {
-        const token = req.headers['x-token'];
-        const userId = await redisClient.get(`auth_${token}`);
-        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+      // Check if email already exists
+      const existingUser = await dbClient.client
+        .db()
+        .collection('users')
+        .findOne({ email });
 
-        const user = await dbClient.db.collection('users').findOne({ _id: new MongoClient.ObjectId(userId) });
-        if (!user) return res.status(401).json({ error: 'Unauthorized' });
+      if (existingUser) {
+        return res.status(400).json({ error: 'Already exist' });
+      }
 
-        res.status(200).json({ id: user._id, email: user.email });
+      // Hash the password using SHA1
+      const hashedPassword = createHash('sha1').update(password).digest('hex');
+
+      // Create the new user object
+      const newUser = {
+        email,
+        password: hashedPassword,
+      };
+
+      // Insert the new user into the database
+      const result = await dbClient.client
+        .db()
+        .collection('users')
+        .insertOne(newUser);
+
+      // Return the new user info (only id and email)
+      return res.status(201).json({
+        id: result.insertedId,
+        email: newUser.email,
+      });
+    } catch (err) {
+      console.error('Error creating user:', err);
+      return res.status(500).json({ error: 'Internal Server Error' });
     }
+  }
 }
 
 export default UsersController;
