@@ -98,7 +98,7 @@ class FilesController {
 
     // Validate pagination inputs
     const pageNumber = parseInt(page, 10);
-    if (isNaN(pageNumber) || pageNumber < 0) {
+    if (Number.isNaN(pageNumber) || pageNumber < 0) {
       return res.status(400).json({ error: 'Invalid page number' });
     }
 
@@ -112,6 +112,7 @@ class FilesController {
 
     return res.status(200).json(files);
   }
+
   static async putPublish(req, res) {
     const token = req.headers['x-token'];
     const userId = await redisClient.get(`auth_${token}`);
@@ -121,15 +122,14 @@ class FilesController {
 
     const { id } = req.params;
     const file = await dbClient.db.collection('files').findOne({ _id: ObjectId(id), userId: ObjectId(userId) });
-  
+
     if (!file) {
       return res.status(404).json({ error: 'Not found' });
     }
 
- 
     await dbClient.db.collection('files').updateOne(
       { _id: ObjectId(id) },
-      { $set: { isPublic: true } }
+      { $set: { isPublic: true } },
     );
 
     const updatedFile = await dbClient.db.collection('files').findOne({ _id: ObjectId(id) });
@@ -145,14 +145,14 @@ class FilesController {
 
     const { id } = req.params;
     const file = await dbClient.db.collection('files').findOne({ _id: ObjectId(id), userId: ObjectId(userId) });
-  
+
     if (!file) {
       return res.status(404).json({ error: 'Not found' });
     }
 
     await dbClient.db.collection('files').updateOne(
       { _id: ObjectId(id) },
-      { $set: { isPublic: false } }
+      { $set: { isPublic: false } },
     );
 
     const updatedFile = await dbClient.db.collection('files').findOne({ _id: ObjectId(id) });
