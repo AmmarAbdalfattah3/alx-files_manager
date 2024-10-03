@@ -1,7 +1,7 @@
 import path from 'path';
-import { ObjectId } from 'mongodb';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
+import { ObjectId } from 'mongodb';
 import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
 
@@ -52,7 +52,7 @@ class FilesController {
     }
 
     const fileDocument = {
-      userId,
+      userId, // Owner of the file
       name,
       type,
       isPublic,
@@ -69,41 +69,6 @@ class FilesController {
       isPublic,
       parentId: parentId || 0,
     });
-  }
-
-  static async getShow(req, res) {
-    const token = req.headers['x-token'];
-    const userId = await redisClient.get(`auth_${token}`);
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    const { id } = req.params;
-    const file = await dbClient.db.collection('files').findOne({ _id: ObjectId(id), userId: ObjectId(userId) });
-    if (!file) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-
-    return res.status(200).json(file);
-  }
-
-  static async getIndex(req, res) {
-    const token = req.headers['x-token'];
-    const userId = await redisClient.get(`auth_${token}`);
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    const { parentId = 0, page = 0 } = req.query;
-    const limit = 20;
-
-    const files = await dbClient.db.collection('files')
-      .find({ userId: ObjectId(userId), parentId: ObjectId(parentId) })
-      .skip(page * limit)
-      .limit(limit)
-      .toArray();
-
-    return res.status(200).json(files);
   }
 }
 
